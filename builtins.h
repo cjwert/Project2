@@ -5,6 +5,8 @@
 #include <vector>
 #include <dirent.h>
 #include <stdio.h>
+#include <readline/history.h>
+#include <unistd.h>
 
 using std::vector;
 using std::string;

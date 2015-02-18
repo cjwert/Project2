@@ -264,7 +264,10 @@ int main() {
     if (line[0]) {
 
       // Add this command to readline's history
-      add_history(line);
+      string lineAsString = line;
+      if (lineAsString.compare("history") != 0) {
+        add_history(line);
+      }
 
       // Break the raw input line into tokens
       vector<string> tokens = tokenize(line);

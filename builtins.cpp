@@ -32,17 +32,23 @@ int com_ls(vector<string>& tokens) {
 
 
 int com_cd(vector<string>& tokens) {
-  // TODO: YOUR CODE GOES HERE
-  cout << "cd called" << endl; // delete when implemented
+	const char*	directory = tokens[1].c_str();
+	DIR* dir;
+	if (directory) dir = opendir(directory);
+	if (!dir){
+		perror("error cd");
+	}
+	else {
+		chdir(directory);
+	}
   return 0;
 }
 
 
 int com_pwd(vector<string>& tokens) {
-  // TODO: YOUR CODE GOES HERE
   // HINT: you should implement the actual fetching of the current directory in
   // pwd(), since this information is also used for your prompt
-  cout << "pwd called" << endl; // delete when implemented
+  cout << pwd() << endl; // delete when implemented
   return 0;
 }
 
@@ -62,26 +68,32 @@ int com_unalias(vector<string>& tokens) {
 
 
 int com_echo(vector<string>& tokens) {
-  // TODO: YOUR CODE GOES HERE
-  cout << "echo called" << endl; // delete when implemented
+	for (int i = 1; i < tokens.size(); i++){
+		cout << tokens[i] << " ";
+	}
+	cout << endl;
   return 0;
 }
 
 
 int com_exit(vector<string>& tokens) {
-  // TODO: YOUR CODE GOES HERE
-  cout << "exit called" << endl; // delete when implemented
+  exit(0);
   return 0;
 }
 
 
 int com_history(vector<string>& tokens) {
-  // TODO: YOUR CODE GOES HERE
-  cout << "history called" << endl; // delete when implemented
+	HIST_ENTRY** hist = history_list();
+
+	for (int i = 0; i < where_history(); i++){
+		cout << i << " " << hist[i]->line << endl;
+	}
+
   return 0;
 }
 
 string pwd() {
-  // TODO: YOUR CODE GOES HERE
-  return NULL;
+	char buff[PATH_MAX + 1];
+  getcwd(buff, PATH_MAX + 1);
+  return buff;
 }
