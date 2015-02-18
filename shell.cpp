@@ -1,11 +1,13 @@
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
 #include <map>
 #include <sstream>
 #include <string>
 #include <vector>
 
 #include <readline/readline.h>
+#include <sys/stat.h>
 #include <readline/history.h>
 
 #include "builtins.h"
@@ -13,13 +15,14 @@
 // Potentially useful #includes (either here or in builtins.h):
 //   #include <dirent.h>
 //   #include <errno.h>
-//   #include <fcntl.h>
+#include <fcntl.h>
 //   #include <signal.h>
 //   #include <sys/errno.h>
 //   #include <sys/param.h>
-//   #include <sys/types.h>
+#include <sys/types.h>
 //   #include <sys/wait.h>
-//   #include <unistd.h>
+#include <unistd.h>
+#include <stdio.h>
 
 using namespace std;
 
@@ -224,6 +227,49 @@ void local_variable_assignment(vector<string>& tokens) {
   }
 }
 
+int file_redirect(vector<string>& tokens) {
+	int return_val;
+	for (int i = 0; i < tokens.size(); i++){
+		if (tokens[i] == "<") {
+			char* outputFile = (char*)tokens[i+1].c_str();
+			int out = open(outputFile, O_RDONLY);
+			int savestdin = dup(0);
+			dup2(out, 0);
+			tokens.pop_back();
+			tokens.pop_back();
+			return_val = execute_line(tokens, builtins);
+			dup2(savestdin, 0);
+			close(out);
+			break;
+		}
+		else if (tokens[i] == ">") {			//overwrite
+			char* outputFile = (char*)tokens[i+1].c_str();
+			int out = open(outputFile, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+			int savestdout = dup(1);
+			dup2(out, 1);
+			tokens.pop_back();
+			tokens.pop_back();
+			return_val = execute_line(tokens, builtins);
+			dup2(savestdout, 1);
+			close(out);
+			break;
+		}
+		else if (tokens[i] == ">>") {			//append
+			char* outputFile = (char*)tokens[i+1].c_str();
+			int out = open(outputFile, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+			int savestdout = dup(1);
+			dup2(out, 1);
+			tokens.pop_back();
+			tokens.pop_back();
+			return_val = execute_line(tokens, builtins);
+			dup2(savestdout, 1);
+			close(out);
+			break;
+		}
+	}
+  return return_val;
+}
+
 
 // The main program
 int main() {
@@ -277,9 +323,9 @@ int main() {
 
       // Substitute variable references
       variable_substitution(tokens);
-
-      // Execute the line
-      return_value = execute_line(tokens, builtins);
+			
+			//file redirection and line execution
+			return_value = file_redirect(tokens);
     }
 
     // Free the memory for the input string
