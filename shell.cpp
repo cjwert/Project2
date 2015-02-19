@@ -229,6 +229,7 @@ void local_variable_assignment(vector<string>& tokens) {
 
 int file_redirect(vector<string>& tokens) {
 	int return_val;
+	bool redirect_flag = false;
 	for (int i = 0; i < tokens.size(); i++){
 		if (tokens[i] == "<") {
 			char* outputFile = (char*)tokens[i+1].c_str();
@@ -240,6 +241,7 @@ int file_redirect(vector<string>& tokens) {
 			return_val = execute_line(tokens, builtins);
 			dup2(savestdin, 0);
 			close(out);
+			redirect_flag = true;
 			break;
 		}
 		else if (tokens[i] == ">") {			//overwrite
@@ -252,6 +254,7 @@ int file_redirect(vector<string>& tokens) {
 			return_val = execute_line(tokens, builtins);
 			dup2(savestdout, 1);
 			close(out);
+			redirect_flag = true;
 			break;
 		}
 		else if (tokens[i] == ">>") {			//append
@@ -264,10 +267,15 @@ int file_redirect(vector<string>& tokens) {
 			return_val = execute_line(tokens, builtins);
 			dup2(savestdout, 1);
 			close(out);
+			redirect_flag = true;
 			break;
 		}
 	}
-  return return_val;
+	if (redirect_flag){
+  	return return_val;
+	} else {
+		return execute_line(tokens, builtins);
+	}
 }
 
 
@@ -305,12 +313,15 @@ int main() {
     if (!line) {
       break;
     }
+		string lineAsString = line;
+		if (lineAsString == "!!"){
+			strcpy(line, history_get(where_history())->line);
+		}
 
     // If the command is non-empty, attempt to execute it
     if (line[0]) {
 
       // Add this command to readline's history
-      string lineAsString = line;
       if (lineAsString.compare("history") != 0) {
         add_history(line);
       }
@@ -326,6 +337,7 @@ int main() {
 			
 			//file redirection and line execution
 			return_value = file_redirect(tokens);
+			//cout << endl << endl << where_history() << endl;	//this is for my testing
     }
 
     // Free the memory for the input string
