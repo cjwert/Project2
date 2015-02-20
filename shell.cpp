@@ -23,6 +23,7 @@
 //   #include <sys/wait.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <regex>
 
 using namespace std;
 
@@ -313,15 +314,38 @@ int main() {
     if (!line) {
       break;
     }
+
 		string lineAsString = line;
-		if (lineAsString == "!!"){
-			strcpy(line, history_get(where_history())->line);
-		}
+
+		if (line[0] == '!'){
+      if (line[1] == '!'){
+        strcpy(line, history_get(where_history())->line);
+        cout << line << endl;
+      }
+      else if (isdigit(line[1])){
+        int i = 1;
+        string buffer = "";
+        while (isdigit(line[i])){
+          buffer = buffer + line[i];
+          i++;
+        }
+        int history_index = stoi(buffer);
+        
+        if (history_index > where_history()-1) {
+          cerr << "Requested index is larger than max in history." << endl;
+          *line = '\0';
+        } else {
+          strcpy(line, history_get(history_index + 1)->line);
+          cout << line << endl;
+        }
+      }
+    }
 
     // If the command is non-empty, attempt to execute it
     if (line[0]) {
 
       // Add this command to readline's history
+      // string lineAsString = line;
       if (lineAsString.compare("history") != 0) {
         add_history(line);
       }
