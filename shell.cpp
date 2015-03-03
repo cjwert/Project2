@@ -27,6 +27,8 @@
 
 using namespace std;
 
+//function prototypes
+int execute_background_command(vector<string>&);
 
 // The characters that readline will use to delimit words
 const char* const WORD_DELIMITERS = " \t\n\"\\'`@><=;|&{(";
@@ -52,13 +54,8 @@ char *convert(const string & s)
 
 // Handles external commands, redirects, and pipes.
 int execute_external_command(vector<string> tokens) {
-  vector<string> tokenCopy;
   int ret_val = -1;
   int status;
-
-  for(int i=0; i < tokens.size(); i++) {
-    tokenCopy.push_back(tokens.at(i));
-  }
 
   pid_t childProcess = fork();
   if (childProcess == 0){ //child process case
@@ -196,12 +193,13 @@ vector<string> tokenize(const char* line) {
   return tokens;
 }
 
-
 // Executes a line of input by either calling execute_external_command or
 // directly invoking the built-in command.
 int execute_line(vector<string>& tokens, map<string, command>& builtins) {
   int return_value = 0;
-
+  if (tokens.at(tokens.size() - 1) == "&"){
+    return execute_background_command(tokens);
+  }
   if (tokens.size() != 0) {
     map<string, command>::iterator cmd = builtins.find(tokens[0]);
 
@@ -211,8 +209,19 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
       return_value = ((*cmd->second)(tokens));
     }
   }
-
   return return_value;
+}
+
+int execute_background_command(vector<string>& tokens) {
+  int ret_val = -1;
+  pid_t childProcess = fork();
+  if (childProcess == 0) {
+    tokens.pop_back(); //remove &
+    ret_val = execute_line(tokens, builtins);
+  }else{
+    cout << "bg count?" << endl;
+  }
+  return ret_val;
 }
 
 
