@@ -37,6 +37,7 @@ int com_cd(vector<string>& tokens) {
 	if (directory) dir = opendir(directory);
 	if (!dir){
 		perror("error cd");
+    return 1;
 	}
 	else {
 		chdir(directory);
