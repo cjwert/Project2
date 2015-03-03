@@ -13,14 +13,14 @@
 #include "builtins.h"
 
 // Potentially useful #includes (either here or in builtins.h):
-//   #include <dirent.h>
-//   #include <errno.h>
+#include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
-//   #include <signal.h>
-//   #include <sys/errno.h>
-//   #include <sys/param.h>
+#include <signal.h>
+#include <sys/errno.h>
+#include <sys/param.h>
 #include <sys/types.h>
-//   #include <sys/wait.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <regex>
@@ -43,12 +43,39 @@ map<string, command> builtins;
 // Variables local to the shell
 map<string, string> localvars;
 
-
+char *convert(const string & s)
+{
+   char *pc = new char[s.size()+1];
+   strcpy(pc, s.c_str());
+   return pc;
+}
 
 // Handles external commands, redirects, and pipes.
 int execute_external_command(vector<string> tokens) {
-  // TODO: YOUR CODE GOES HERE
-  return 0;
+  vector<string> tokenCopy;
+  int ret_val = -1;
+  int status;
+
+  for(int i=0; i < tokens.size(); i++) {
+    tokenCopy.push_back(tokens.at(i));
+  }
+
+  pid_t childProcess = fork();
+  if (childProcess == 0){ //child process case
+    vector<char*> vc;
+    transform(tokens.begin(), tokens.end(), std::back_inserter(vc), convert);
+    vc.push_back(NULL);
+    char **command = &vc[0];
+    ret_val = execvp(command[0], command);
+    if (ret_val < 0) {
+      cerr << "ERROR: execvp failed\n";
+      exit(1);
+    }
+    exit(childProcess);
+  } else { //this is the parent process case
+    pid_t finish = wait(&status);
+  }
+  return ret_val;
 }
 
 
@@ -320,9 +347,9 @@ int main() {
       break;
     }
 
-		string lineAsString = line;
+	  string lineAsString = line;
 
-		if (line[0] == '!'){
+	  if (line[0] == '!'){
       if (line[1] == '!'){
         strcpy(line, history_get(where_history())->line);
         cout << line << endl;
