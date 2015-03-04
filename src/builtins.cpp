@@ -18,7 +18,7 @@ int com_ls(vector<string>& tokens) {
     perror("ls error: ");
 
     // return error
-    return 1;
+    return -1;
   }
 
   // output each entry in the directory
@@ -37,7 +37,7 @@ int com_cd(vector<string>& tokens) {
 	if (directory) dir = opendir(directory);
 	if (!dir){
 		perror("error cd");
-    return 1;
+    return -1;
 	}
 	else {
 		chdir(directory);
@@ -49,7 +49,7 @@ int com_cd(vector<string>& tokens) {
 int com_pwd(vector<string>& tokens) {
   // HINT: you should implement the actual fetching of the current directory in
   // pwd(), since this information is also used for your prompt
-  cout << pwd() << endl; // delete when implemented
+  cout << pwd() << endl;
   return 0;
 }
 

@@ -29,6 +29,7 @@ using namespace std;
 
 //function prototypes
 int execute_background_command(vector<string>&);
+int pipe_command(vector<string>);
 
 // The characters that readline will use to delimit words
 const char* const WORD_DELIMITERS = " \t\n\"\\'`@><=;|&{(";
@@ -57,7 +58,12 @@ int execute_external_command(vector<string> tokens) {
   int ret_val = -1;
   int status;
 
-  pid_t childProcess = fork();
+  pid_t childProcess;
+
+  if((childProcess = fork()) == -1) {
+    perror("fork");
+    exit(1);
+  }
   if (childProcess == 0){ //child process case
     vector<char*> vc;
     transform(tokens.begin(), tokens.end(), std::back_inserter(vc), convert);
@@ -65,12 +71,17 @@ int execute_external_command(vector<string> tokens) {
     char **command = &vc[0];
     ret_val = execvp(command[0], command);
     if (ret_val < 0) {
-      cerr << "ERROR: execvp failed\n";
+      perror("ERROR: execvp failed\n");
       exit(1);
     }
     exit(childProcess);
   } else { //this is the parent process case
     pid_t finish = wait(&status);
+    if (status != 0) {
+      ret_val = -1;
+    } else {
+      ret_val = 0;
+    }
   }
   return ret_val;
 }
@@ -80,7 +91,7 @@ int execute_external_command(vector<string> tokens) {
 // include the current working directory and should also use the return value to
 // indicate the result (success or failure) of the last command.
 string get_prompt(int return_value) {
-  if (return_value == 0){
+  if (return_value != -1){
     return pwd() + " :) $ ";
   } else {
     return pwd() + " :( $ ";
@@ -193,33 +204,112 @@ vector<string> tokenize(const char* line) {
   return tokens;
 }
 
+int has_pipes(vector<string>& tokens){
+  int value = 0;
+  for (int i = 0; i < tokens.size(); i++){
+    if (tokens.at(i) == "|") {
+      value = 1;
+    }
+  }
+  return value;
+}
+
+
 // Executes a line of input by either calling execute_external_command or
 // directly invoking the built-in command.
 int execute_line(vector<string>& tokens, map<string, command>& builtins) {
-  int return_value = 0;
+  int ret_value = 0;
+  int status;
+
   if (tokens.at(tokens.size() - 1) == "&"){
     return execute_background_command(tokens);
   }
+
+
   if (tokens.size() != 0) {
     map<string, command>::iterator cmd = builtins.find(tokens[0]);
 
-    if (cmd == builtins.end()) {
-      return_value = execute_external_command(tokens);
-    } else {
-      return_value = ((*cmd->second)(tokens));
+    if (has_pipes(tokens) == 0){
+
+      if (cmd == builtins.end()) {
+        ret_value = execute_external_command(tokens);
+      } else {
+        ret_value = ((*cmd->second)(tokens));
+      }
+
+    } else if (has_pipes(tokens) == 1){
+      pid_t childProcess = fork();
+      if (childProcess == 0) {
+        ret_value = pipe_command(tokens);
+        exit(childProcess);
+      }else{
+        pid_t finish = wait(&status);
+      }
+
+    }
+
+  }
+  return ret_value;
+}
+
+int pipe_command(vector<string> tokens) {
+  int ret_value=-1;  
+  int status;
+  vector<string> rightOfPipe;
+  vector<string> leftOfPipe;
+
+  for (int i=0; i < tokens.size(); ++i) {
+    if (tokens.at(i) == "|") {
+      for (int j=0; j < i; ++j) {
+        leftOfPipe.push_back(tokens.at(j));
+      }
+      for (int j=i+1; j < tokens.size(); ++j) {
+        rightOfPipe.push_back(tokens.at(j));
+      }
+
+      int fd[2];
+      pid_t childpid;
+      pipe(fd);
+
+      if((childpid = fork()) == -1) {
+        perror("fork");
+        exit(1);
+      }
+
+      if (childpid == 0) {   //child case
+        dup2(fd[1],1);
+        close(fd[0]);
+        ret_value = execute_line(leftOfPipe, builtins);
+      } else {            //parent case
+        wait(&status);
+        dup2(fd[0],0);
+        close(fd[1]);
+        ret_value = execute_line(rightOfPipe, builtins);
+      }
+      exit(ret_value);
     }
   }
-  return return_value;
+  return ret_value;
 }
+
+int bgcount = 0;
 
 int execute_background_command(vector<string>& tokens) {
   int ret_val = -1;
-  pid_t childProcess = fork();
+  pid_t childProcess;
+
+  if((childProcess = fork()) == -1) {
+    perror("fork in background_command");
+    exit(1);
+  }
+
   if (childProcess == 0) {
     tokens.pop_back(); //remove &
     ret_val = execute_line(tokens, builtins);
+    exit(childProcess);     //added this to see if it fixes slow terminal problem
   }else{
-    cout << "bg count?" << endl;
+    bgcount++;
+    cout << "[" << bgcount << "] " << childProcess << endl;
   }
   return ret_val;
 }
