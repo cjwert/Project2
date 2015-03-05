@@ -128,11 +128,11 @@ char* environment_completion_generator(const char* text, int state) {
   // A list of all the matches;
   // Must be static because this function is called repeatedly
   static vector<string> matches;
-
+  //environ
   // If this is the first time called, construct the matches list with
   // all possible matches
   if (state == 0) {
-    // TODO: YOUR CODE GOES HERE
+ 
   }
 
   // Return a single match (one for each time the function is called)
@@ -162,7 +162,6 @@ char* command_completion_generator(const char* text, int state) {
 // attempts to complete with a command, variable name, or filename.
 char** word_completion(const char* text, int start, int end) {
   char** matches = NULL;
-
   if (start == 0) {
     rl_completion_append_character = ' ';
     matches = rl_completion_matches(text, command_completion_generator);
